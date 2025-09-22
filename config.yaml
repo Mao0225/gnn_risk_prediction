@@ -1,0 +1,8 @@
+data_path: data/渔网训练5000.xlsx  # 训练数据路径
+val_data_path: data/渔网验证5000.xlsx  # 新增：验证数据路径
+model_path: models/best_model.pth
+in_channels: 16
+hidden_channels: 64
+learning_rate: 0.005
+epochs: 2000
+save_base_dir: results/train   # 保存实验的基础目录
