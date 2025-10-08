@@ -4,5 +4,5 @@ model_path: models/best_model.pth
 in_channels: 16
 hidden_channels: 64
 learning_rate: 0.005
-epochs: 2000
+epochs: 500
 save_base_dir: results/train   # 保存实验的基础目录

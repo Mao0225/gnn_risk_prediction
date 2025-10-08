@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import geopandas as gpd
 import matplotlib
+from matplotlib.colors import ListedColormap
 
 # 中文显示设置：确保图表中中文正常显示，避免乱码
 # 设置默认字体为SimHei（黑体）
@@ -244,27 +245,56 @@ def plot_pred_vs_true_map(polygons, y_true, y_pred, save_path=None):
         plt.show()
 
 
+import geopandas as gpd  # 导入geopandas库，用于处理地理数据
+import matplotlib.pyplot as plt  # 导入matplotlib库，用于绘图
+import numpy as np  # 导入numpy库，用于数组操作（如计算绝对值和最大值）
+from matplotlib.colors import LinearSegmentedColormap  # 导入LinearSegmentedColormap，用于自定义连续颜色映射
+
+
 def plot_residual_heatmap(polygons, y_true, y_pred, save_path=None):
     """
     绘制残差（预测值-真实值）的空间分布热力图，分析误差的地理分布特征
 
     参数:
-        polygons: 多边形几何对象列表，代表地理区域
-        y_true: 真实值数组
-        y_pred: 预测值数组
-        save_path: 图像保存路径，若为None则直接显示图像
+        polygons: 多边形几何对象列表，代表地理区域（例如shapely Polygon对象）
+        y_true: 真实值数组（numpy数组或列表，与polygons长度一致）
+        y_pred: 预测值数组（numpy数组或列表，与polygons长度一致）
+        save_path: 图像保存路径，若为None则直接显示图像（str或None）
+
+    返回:
+        无（直接显示或保存图像）
+
+    示例:
+        plot_residual_heatmap(polygons_list, true_values, pred_values, 'residual_heatmap.png')
     """
-    # 计算残差：预测值减去真实值
-    residuals = y_pred - y_true
+    # 计算残差：预测值减去真实值，得到误差数组
+    residuals = np.array(y_pred) - np.array(y_true)  # 转换为numpy数组，确保兼容
 
-    # 创建地理数据框，关联几何对象和残差值
+    # 创建地理数据框（GeoDataFrame），将几何对象和残差值关联起来
+    # geometry列存储多边形，residual列存储对应残差值
     gdf = gpd.GeoDataFrame({"geometry": polygons, "residual": residuals})
-    # 使用bwr配色方案（蓝-白-红），便于区分正负残差
-    ax = gdf.plot(column="residual", cmap="bwr", legend=True, figsize=(8, 6))
-    ax.set_title("残差空间分布")  # 设置标题
 
+    # 强制对称颜色范围：vmin = -max(|residuals|), vmax = max(|residuals|)，确保0落在中心（白色）
+    abs_res = np.abs(residuals)
+    vmax = np.max(abs_res)
+    vmin = -vmax
+
+    # 自定义蓝-白-红colormap：严格定义中心为纯白（通过高色阶数减少偏差）
+    # cdict定义：0.0=蓝(0,0,1)，0.5=白(1,1,1)，1.0=红(1,0,0)
+    cdict = {
+        'red': [(0.0, 0.0, 0.0), (0.5, 1.0, 1.0), (1.0, 1.0, 1.0)],
+        'green': [(0.0, 0.0, 0.0), (0.5, 1.0, 1.0), (1.0, 0.0, 0.0)],
+        'blue': [(0.0, 1.0, 1.0), (0.5, 1.0, 1.0), (1.0, 0.0, 0.0)]
+    }
+    cmap = LinearSegmentedColormap('custom_bwr', cdict, N=1000)  # N=1000增加色阶，使中心更精确为白
+
+    # 绘制热力图：使用residual列着色，指定对称vmin/vmax和自定义cmap，legend显示图例，figsize设置图像大小
+    ax = gdf.plot(column="residual", cmap=cmap, vmin=vmin, vmax=vmax, legend=True, figsize=(8, 6))
+    ax.set_title("残差空间分布")  # 设置图像标题
+
+    # 如果指定保存路径，则保存图像（高分辨率，无边框），否则直接显示
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.close()  # 关闭图像，避免内存泄漏
     else:
-        plt.show()
+        plt.show()  # 显示图像

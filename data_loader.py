@@ -4,7 +4,6 @@ import torch
 import ast
 from utils import build_graph,build_graph_fast
 
-
 def load_and_preprocess_data(file_path,exp_dir):
     """
     加载并预处理Excel格式的地理空间数据
