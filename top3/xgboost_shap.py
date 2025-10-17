@@ -32,6 +32,10 @@ def compute_xgboost_shap(df):
     # 提取前三
     feature_names = feature_cols
     results = []
+    all_top_contribs = {}  # 用于计算总贡献: {feat: total_contrib}
+    for feat in feature_names:
+        all_top_contribs[feat] = 0.0
+
     for i in range(len(df)):
         grid_contribs = np.abs(shap_values[i])
         top_indices = np.argsort(grid_contribs)[::-1][:3]
@@ -41,9 +45,25 @@ def compute_xgboost_shap(df):
             'risk_value': df.iloc[i]['风险值'],
             'top_3_influences': top_features
         })
+        # 累加前三贡献
+        for idx in top_indices:
+            feat = feature_names[idx]
+            all_top_contribs[feat] += grid_contribs[idx]
 
-    # 统计（已降序）
+    # 统计出现次数（已降序）
     all_top_features = [feat for result in results for feat, _ in result['top_3_influences']]
     feature_counts = Counter(all_top_features)
+    feature_counts_sorted = dict(sorted(feature_counts.items(), key=lambda x: x[1], reverse=True))
 
-    return results, dict(sorted(feature_counts.items(), key=lambda x: x[1], reverse=True))  # 返回降序dict
+    # 计算平均贡献率：每个属性的总前三贡献 / 所有前三总贡献
+    total_all_contribs = sum(all_top_contribs.values())
+    avg_contrib_rates = {feat: (all_top_contribs[feat] / total_all_contribs * 100) if total_all_contribs > 0 else 0
+                         for feat in feature_names}
+
+    # 只保留有贡献的，按率降序
+    avg_contrib_rates_sorted = dict(sorted(
+        {k: v for k, v in avg_contrib_rates.items() if v > 0}.items(),
+        key=lambda x: x[1], reverse=True
+    ))
+
+    return results, feature_counts_sorted, avg_contrib_rates_sorted
