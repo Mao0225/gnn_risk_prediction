@@ -14,8 +14,15 @@ plt.rcParams['font.sans-serif'] = ['SimHei', 'Arial Unicode MS', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # 数据加载（抽到main.py）
-file_path = '../data/test.xlsx'
+file_path = '../data/渔网完整.xlsx'
 df = pd.read_excel(file_path)
+
+region = '整体'
+
+if region != '整体':
+    df = df[df['属于'] == region].copy()  # 使用.copy()避免SettingWithCopyWarning
+
+
 print(f"数据行数: {len(df)}")
 print(df.head())
 
@@ -36,8 +43,8 @@ for compute_func, method_name, color, edgecolor, subdir in methods_config:
     results, feature_counts, avg_contrib_rates = compute_func(df)  # 统一解包3个值
     results_all[method_name] = (results, feature_counts, avg_contrib_rates)
 
-    # 创建子文件夹并保存CSV
-    subdir_path = os.path.join('result', subdir)
+    # 创建子文件夹并保存CSV（加入区域文件夹）
+    subdir_path = os.path.join('result', region, subdir)
     os.makedirs(subdir_path, exist_ok=True)
 
     # 保存top_influences.csv
@@ -67,10 +74,10 @@ for compute_func, method_name, color, edgecolor, subdir in methods_config:
     fig2.savefig(os.path.join(subdir_path, 'avg_contrib_rates_bar.png'), dpi=300, bbox_inches='tight')
     plt.close(fig2)
 
-    print(f"{method_name} 结果已保存到 result/{subdir}/")
+    print(f"{method_name} 结果已保存到 result/{region}/{subdir}/")
 
-# 生成对比图（四个出现次数图合成一张）
-comparison_dir = 'result/comparison'
+# 生成对比图（四个出现次数图合成一张，加入区域文件夹）
+comparison_dir = os.path.join('result', region, 'comparison')
 os.makedirs(comparison_dir, exist_ok=True)
 
 # 出现次数对比图
@@ -102,7 +109,7 @@ plt.suptitle('四个方法属性出现次数对比', fontsize=16, y=0.98)
 plt.tight_layout()
 comparison_path = os.path.join(comparison_dir, 'comparison_bar_charts.png')
 plt.savefig(comparison_path, dpi=300, bbox_inches='tight')
-plt.show()
+# plt.show()
 print(f"对比图已保存到 {comparison_path}")
 
 # 平均贡献率对比图（类似结构）
@@ -134,7 +141,7 @@ plt.suptitle('四个方法平均贡献率对比', fontsize=16, y=0.98)
 plt.tight_layout()
 comparison_contrib_path = os.path.join(comparison_dir, 'comparison_avg_contrib_rates_bar_charts.png')
 plt.savefig(comparison_contrib_path, dpi=300, bbox_inches='tight')
-plt.show()
+# plt.show()
 print(f"平均贡献率对比图已保存到 {comparison_contrib_path}")
 
 print("\n=== 所有方法运行完成 ===")
